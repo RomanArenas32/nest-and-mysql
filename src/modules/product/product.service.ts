@@ -7,6 +7,10 @@ import { StockDto } from './dto/stock-dto';
 
 @Injectable()
 export class ProductService {
+
+    private MAX_STOCK:number = 1000;
+    private MIN_STOCK:number = 0;
+
     constructor(@InjectRepository(Product) private productRepository: Repository<Product>){
     }
 
@@ -89,5 +93,47 @@ export class ProductService {
         )
         return rows.affected == 1;
 
+    }
+    async incrementStock(s: StockDto){
+        const product: ProductDto = await this.findProduct(s.id);
+        if(!product){
+            throw new ConflictException("El producto no existe")
+        }
+        if(product.delete){
+            throw new ConflictException("El producto ha sido eliminado por lo tanto no es posible actualizar el stock")
+        }
+        let stock = 0;
+        if(s.stock + product.stock > this.MAX_STOCK){
+            stock = this.MAX_STOCK;
+        }
+        else{
+            stock = s.stock + product.stock
+        }
+        const rows = await this.productRepository.update(
+            {id : s.id},
+            {stock}
+        )
+        return rows.affected == 1;
+    }
+    async decrementStock(s: StockDto){
+        const product: ProductDto = await this.findProduct(s.id);
+        if(!product){
+            throw new ConflictException("El producto no existe")
+        }
+        if(product.delete){
+            throw new ConflictException("El producto ha sido eliminado por lo tanto no es posible actualizar el stock")
+        }
+        let stock = 0;
+        if( product.stock - s.stock  < this.MIN_STOCK){
+            stock = this.MIN_STOCK;
+        }
+        else{
+            stock = product.stock - s.stock
+        }
+        const rows = await this.productRepository.update(
+            {id : s.id},
+            {stock}
+        )
+        return rows.affected == 1;
     }
 }
